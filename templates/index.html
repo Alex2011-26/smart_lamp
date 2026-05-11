@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Умная лампа</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a14;
+            --card-bg: rgba(22, 22, 40, 0.75);
+            --text-primary: #e8e8f0;
+            --text-secondary: #b0b0c0;
+            --green-glow: #00e676;
+            --red-glow: #ff3d3d;
+            --rainbow-1: #ff6b6b;
+            --rainbow-2: #ffd93d;
+            --rainbow-3: #6bcb77;
+            --rainbow-4: #4d96ff;
+            --rainbow-5: #9b59b6;
+            --orb-purple: #7c3aed;
+            --orb-blue: #3b82f6;
+            --orb-teal: #14b8a6;
+            --orb-pink: #ec4899;
+            --safe-bottom: env(safe-area-inset-bottom, 16px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+            padding: 20px;
+            padding-bottom: calc(20px + var(--safe-bottom));
+        }
+
+        .bg-orbs {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.45;
+            animation: floatOrb var(--duration, 12s) ease-in-out infinite;
+            animation-delay: var(--delay, 0s);
+            will-change: transform;
+        }
+        .bg-orb:nth-child(1) { width: 220px; height: 220px; background: var(--orb-purple); top: -60px; left: -40px; --duration: 14s; --delay: 0s; }
+        .bg-orb:nth-child(2) { width: 180px; height: 180px; background: var(--orb-blue); bottom: -50px; right: -30px; --duration: 16s; --delay: -4s; }
+        .bg-orb:nth-child(3) { width: 160px; height: 160px; background: var(--orb-teal); top: 40%; left: 50%; --duration: 18s; --delay: -8s; }
+        .bg-orb:nth-child(4) { width: 140px; height: 140px; background: var(--orb-pink); bottom: 20%; left: 10%; --duration: 20s; --delay: -12s; }
+
+        @keyframes floatOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            20% { transform: translate(30px, -40px) scale(1.15); }
+            40% { transform: translate(-20px, 25px) scale(0.9); }
+            60% { transform: translate(35px, 30px) scale(1.1); }
+            80% { transform: translate(-25px, -35px) scale(0.85); }
+        }
+
+        .stars {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--twinkle-dur, 3s) ease-in-out infinite;
+            animation-delay: var(--twinkle-delay, 0s);
+            opacity: 0;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(2.2); }
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 28px;
+            padding: 28px 24px 32px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+            animation: cardIn 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(40px) scale(0.94); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .card-title {
+            text-align: center;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.4px;
+            margin-bottom: 6px;
+        }
+        .card-subtitle {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            letter-spacing: 0.3px;
+        }
+
+        .control-form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            color: #fff;
+            text-transform: uppercase;
+            min-height: 56px;
+            touch-action: manipulation;
+            -webkit-appearance: none;
+        }
+        .btn:active { transform: scale(0.96); }
+
+        .btn .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(0);
+            animation: rippleEffect 0.7s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes rippleEffect { to { transform: scale(4); opacity: 0; } }
+
+        /* Зеленая кнопка ВКЛ */
+        .btn-on {
+            background: linear-gradient(135deg, #00c853, #00e676, #1de9b6);
+            box-shadow: 0 8px 32px rgba(0,230,118,0.35), 0 2px 8px rgba(0,200,80,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        /* Красная кнопка ВЫКЛ */
+        .btn-off {
+            background: linear-gradient(135deg, #c62828, #e53935, #ff5252);
+            box-shadow: 0 8px 32px rgba(255,61,61,0.35), 0 2px 8px rgba(200,30,30,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Кнопка выбора цвета с радужной обводкой */
+        .btn-color-wrapper {
+            position: relative;
+            border-radius: 18px;
+            padding: 3px;
+            background: conic-gradient(from 0deg, var(--rainbow-1), var(--rainbow-2), var(--rainbow-3), var(--rainbow-4), var(--rainbow-5), var(--rainbow-1));
+            background-size: 200% 200%;
+            animation: rotateRainbow 3.5s linear infinite;
+            box-shadow: 0 8px 28px rgba(150,100,255,0.3);
+        }
+        @keyframes rotateRainbow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Кнопка ГРАДИЕНТ (перетекание) */
+        .btn-gradient-wrapper {
+            position: relative;
+            border-radius: 18px;
+            padding: 3px;
+            background: linear-gradient(270deg, #ff6b6b, #4d96ff, #6bcb77, #ffd93d);
+            background-size: 300% 300%;
+            animation: gradientFlow 4s ease infinite;
+            box-shadow: 0 8px 28px rgba(255,160,80,0.35);
+        }
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .btn-color, .btn-gradient {
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            width: 100%;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+            color: #fff;
+            position: relative;
+        }
+        .color-preview-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.7);
+            background: #ffffff;
+            box-shadow: 0 0 12px rgba(255,255,255,0.35);
+            flex-shrink: 0;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: rgba(28,28,50,0.95);
+            backdrop-filter: blur(30px);
+            border-radius: 26px;
+            padding: 24px 20px 22px;
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            transform: scale(0.85) translateY(30px);
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .modal-overlay.active .modal-card {
+            transform: scale(1) translateY(0);
+        }
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .canvas-container {
+            width: 100%;
+            max-width: 280px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            cursor: pointer;
+            touch-action: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 4px rgba(255,255,255,0.06);
+        }
+        .selected-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .selected-preview-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.6);
+            box-shadow: 0 0 20px var(--preview-glow, #ffffff88);
+            background: #fff;
+        }
+        .selected-hex {
+            font-family: 'SF Mono', monospace;
+            font-weight: 600;
+            background: rgba(255,255,255,0.06);
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+        .btn-modal {
+            flex: 1;
+            padding: 14px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            min-height: 48px;
+            transition: all 0.25s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-confirm {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: #fff;
+            box-shadow: 0 6px 22px rgba(108,92,231,0.4);
+        }
+        .btn-cancel {
+            background: rgba(255,255,255,0.07);
+            color: #ccc;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        /* Стили для выбора двух цветов градиента */
+        .gradient-slots {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .gradient-slot {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.4);
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: white;
+            text-shadow: 0 1px 3px black;
+            background: var(--slot-color, #fff);
+        }
+        .gradient-slot.active-slot {
+            border-color: white;
+            box-shadow: 0 0 22px var(--slot-color), 0 0 44px var(--slot-color);
+        }
+        .slot-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 360px) {
+            .main-container { padding: 20px 16px 24px; border-radius: 22px; }
+            .btn { padding: 14px 18px; font-size: 0.95rem; border-radius: 15px; min-height: 50px; }
+            .btn-color-wrapper, .btn-gradient-wrapper { border-radius: 15px; padding: 2.5px; }
+            .card-title { font-size: 1.2rem; }
+            .modal-card { padding: 18px 14px 16px; border-radius: 20px; gap: 12px; }
+            .canvas-container { max-width: 220px; }
+            .selected-preview-circle { width: 36px; height: 36px; }
+            .selected-hex { font-size: 0.85rem; padding: 6px 10px; }
+            .btn-modal { padding: 12px 12px; font-size: 0.85rem; min-height: 42px; border-radius: 12px; }
+        }
+    </style>
+</head>
+<body>
+<div class="bg-orbs">
+    <div class="bg-orb"></div><div class="bg-orb"></div><div class="bg-orb"></div><div class="bg-orb"></div>
+</div>
+<div class="stars" id="starsContainer"></div>
+
+<div class="main-container">
+    <h1 class="card-title">✨ Панель управления</h1>
+    <p class="card-subtitle">Выберите действие</p>
+
+    <form class="control-form" id="controlForm" action="/" method="POST">
+        <input type="hidden" name="command" id="commandInput" value="">
+        <input type="hidden" name="color_hex" id="colorHexInput" value="#ffffff">
+        <input type="hidden" name="gradient_color1" id="gradientColor1Input" value="#ff6b6b">
+        <input type="hidden" name="gradient_color2" id="gradientColor2Input" value="#4d96ff">
+
+        <button type="submit" class="btn btn-on" id="btnOn" data-command="on">
+            <span>⚡</span> Включить <span>🔆</span>
+        </button>
+        <button type="submit" class="btn btn-off" id="btnOff" data-command="off">
+            <span>🔌</span> Выключить <span>🌙</span>
+        </button>
+
+        <div class="btn-color-wrapper">
+            <button type="button" class="btn btn-color" id="btnColor">
+                <span>🎨</span> Выбрать цвет <span class="color-preview-dot" id="colorPreviewDot"></span>
+            </button>
+        </div>
+
+        <div class="btn-gradient-wrapper">
+            <button type="button" class="btn btn-gradient" id="btnGradient">
+                <span>🌈</span> Перетекание <span class="color-preview-dot" id="gradientPreviewDot" style="background:#ff6b6b;"></span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно выбора одного цвета -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card">
+        <h2 class="modal-title">🎯 Выберите цвет</h2>
+        <div class="canvas-container">
+            <canvas class="color-wheel-canvas" id="colorWheelCanvas" width="300" height="300"></canvas>
+        </div>
+        <div class="selected-preview-row">
+            <div class="selected-preview-circle" id="modalPreviewCircle"></div>
+            <span class="selected-hex" id="modalHexDisplay">#FFFFFF</span>
+        </div>
+        <div class="modal-buttons">
+            <button type="button" class="btn-modal btn-cancel" id="btnCancel">Отмена</button>
+            <button type="button" class="btn-modal btn-confirm" id="btnConfirm">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно выбора градиента (двух цветов) -->
+<div class="modal-overlay" id="gradientModalOverlay">
+    <div class="modal-card">
+        <h2 class="modal-title">🌈 Перетекание между цветами</h2>
+        <div class="gradient-slots">
+            <div class="gradient-slot active-slot" id="gradientSlot1" style="--slot-color: #ff6b6b;">1</div>
+            <span class="slot-label">↔</span>
+            <div class="gradient-slot" id="gradientSlot2" style="--slot-color: #4d96ff;">2</div>
+        </div>
+        <div class="canvas-container">
+            <canvas class="color-wheel-canvas" id="gradientColorWheelCanvas" width="300" height="300"></canvas>
+        </div>
+        <div class="selected-preview-row">
+            <span class="selected-hex" id="gradientHexDisplay">#FF6B6B</span>
+        </div>
+        <div class="modal-buttons">
+            <button type="button" class="btn-modal btn-cancel" id="btnGradientCancel">Отмена</button>
+            <button type="button" class="btn-modal btn-confirm" id="btnGradientConfirm">Применить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ==================== DOM элементы ====================
+    const form = document.getElementById('controlForm');
+    const commandInput = document.getElementById('commandInput');
+    const colorHexInput = document.getElementById('colorHexInput');
+    const gradientColor1Input = document.getElementById('gradientColor1Input');
+    const gradientColor2Input = document.getElementById('gradientColor2Input');
+    const btnOn = document.getElementById('btnOn');
+    const btnOff = document.getElementById('btnOff');
+    const btnColor = document.getElementById('btnColor');
+    const btnGradient = document.getElementById('btnGradient');
+    const colorPreviewDot = document.getElementById('colorPreviewDot');
+    const gradientPreviewDot = document.getElementById('gradientPreviewDot');
+
+    // Модалка одного цвета
+    const modalOverlay = document.getElementById('modalOverlay');
+    const colorWheelCanvas = document.getElementById('colorWheelCanvas');
+    const modalPreviewCircle = document.getElementById('modalPreviewCircle');
+    const modalHexDisplay = document.getElementById('modalHexDisplay');
+    const btnCancel = document.getElementById('btnCancel');
+    const btnConfirm = document.getElementById('btnConfirm');
+
+    // Модалка градиента
+    const gradientModalOverlay = document.getElementById('gradientModalOverlay');
+    const gradientColorWheelCanvas = document.getElementById('gradientColorWheelCanvas');
+    const gradientHexDisplay = document.getElementById('gradientHexDisplay');
+    const btnGradientCancel = document.getElementById('btnGradientCancel');
+    const btnGradientConfirm = document.getElementById('btnGradientConfirm');
+    const gradientSlot1 = document.getElementById('gradientSlot1');
+    const gradientSlot2 = document.getElementById('gradientSlot2');
+
+    // ==================== Состояние одного цвета ====================
+    let selectedHue = 0, selectedSaturation = 0, selectedHex = '#ffffff';
+    let isDragging = false;
+    const canvasInternalSize = 300;
+    const wheelCenterX = canvasInternalSize / 2;
+    const wheelCenterY = canvasInternalSize / 2;
+    const wheelRadius = canvasInternalSize / 2 - 6;
+    let wheelImageData = null;
+
+    // ==================== Состояние градиента ====================
+    let gradientColor1 = '#ff6b6b';
+    let gradientColor2 = '#4d96ff';
+    let activeGradientSlot = 1;          // 1 или 2
+    let gradientHue = 0, gradientSaturation = 0;
+
+    // ==================== Звёзды ====================
+    function createStars() {
+        const container = document.getElementById('starsContainer');
+        let html = '';
+        for (let i = 0; i < 55; i++) {
+            const x = Math.random() * 100, y = Math.random() * 100;
+            const size = Math.random() * 2.2 + 0.8;
+            const dur = Math.random() * 3 + 2;
+            const delay = Math.random() * 5;
+            html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;--twinkle-dur:${dur}s;--twinkle-delay:${delay}s;"></div>`;
+        }
+        container.innerHTML = html;
+    }
+    createStars();
+
+    // ==================== Ripple ====================
+    function addRipple(e) {
+        const btn = e.currentTarget;
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple');
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove());
+    }
+    [btnOn, btnOff, btnColor, btnGradient].forEach(b => b.addEventListener('pointerdown', addRipple));
+
+    // ==================== Вспомогательные функции цвета ====================
+    function hsvToRgb(h, s, v) {
+        const c = v * s;
+        const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+        const m = v - c;
+        let r, g, b;
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+        return {
+            r: Math.round((r + m) * 255),
+            g: Math.round((g + m) * 255),
+            b: Math.round((b + m) * 255)
+        };
+    }
+
+    function rgbToHex(r, g, b) {
+        return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+
+    function rgbToHsvApprox(r, g, b) {
+        const rf = r / 255, gf = g / 255, bf = b / 255;
+        const max = Math.max(rf, gf, bf), min = Math.min(rf, gf, bf);
+        const delta = max - min;
+        let h = 0;
+        const s = max === 0 ? 0 : delta / max;
+        const v = max;
+        if (delta !== 0) {
+            if (max === rf) h = ((gf - bf) / delta) % 6;
+            else if (max === gf) h = (bf - rf) / delta + 2;
+            else h = (rf - gf) / delta + 4;
+            h = Math.round(h * 60);
+            if (h < 0) h += 360;
+        }
+        return { h, s, v };
+    }
+
+    // ==================== Рисование цветового колеса (общее) ====================
+    function drawColorWheel() {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = canvasInternalSize;
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.createImageData(canvasInternalSize, canvasInternalSize);
+        const data = imageData.data;
+        for (let py = 0; py < canvasInternalSize; py++) {
+            for (let px = 0; px < canvasInternalSize; px++) {
+                const dx = px - wheelCenterX;
+                const dy = py - wheelCenterY;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance <= wheelRadius) {
+                    const angle = Math.atan2(dy, dx);
+                    const hue = ((angle * 180 / Math.PI) + 360) % 360;
+                    const saturation = Math.min(distance / wheelRadius, 1);
+                    const rgb = hsvToRgb(hue, saturation, 1.0);
+                    const idx = (py * canvasInternalSize + px) * 4;
+                    data[idx] = rgb.r; data[idx+1] = rgb.g; data[idx+2] = rgb.b; data[idx+3] = 255;
+                }
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+        wheelImageData = canvas;  // кешируем
+    }
+    drawColorWheel();
+
+    function updateCanvas(canvas, hue, saturation) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvasInternalSize, canvasInternalSize);
+        if (wheelImageData) ctx.drawImage(wheelImageData, 0, 0);
+        const angleRad = hue * Math.PI / 180;
+        const dist = saturation * wheelRadius;
+        const ix = wheelCenterX + dist * Math.cos(angleRad);
+        const iy = wheelCenterY + dist * Math.sin(angleRad);
+        ctx.save();
+        ctx.beginPath(); ctx.arc(ix, iy, 11, 0, Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(ix, iy, 10, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(ix, iy, 4.5, 0, Math.PI*2); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fill();
+        ctx.restore();
+    }
+
+    // ==================== Обработчики холста (общие) ====================
+    function getCanvasCoords(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvasInternalSize / rect.width;
+        const scaleY = canvasInternalSize / rect.height;
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY;
+        } else {
+            clientX = e.clientX; clientY = e.clientY;
+        }
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    // ==================== ЛОГИКА ОДНОГО ЦВЕТА ====================
+    function updateSingleSelectionFromCoords(coords) {
+        const dx = coords.x - wheelCenterX;
+        const dy = coords.y - wheelCenterY;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        const clampedDist = Math.min(distance, wheelRadius);
+        const angle = Math.atan2(dy, dx);
+        const hue = ((angle * 180 / Math.PI) + 360) % 360;
+        const saturation = clampedDist / wheelRadius;
+        selectedHue = hue;
+        selectedSaturation = saturation;
+        const rgb = hsvToRgb(hue, saturation, 1.0);
+        selectedHex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        updateCanvas(colorWheelCanvas, selectedHue, selectedSaturation);
+        modalPreviewCircle.style.background = selectedHex;
+        modalPreviewCircle.style.boxShadow = `0 0 22px ${selectedHex}66`;
+        modalHexDisplay.textContent = selectedHex.toUpperCase();
+        colorPreviewDot.style.background = selectedHex;
+        colorPreviewDot.style.boxShadow = `0 0 14px ${selectedHex}66`;
+    }
+
+    function initSingleModal() {
+        const rgb = hexToRgb(selectedHex);
+        if (rgb) {
+            const hsv = rgbToHsvApprox(rgb.r, rgb.g, rgb.b);
+            selectedHue = hsv.h;
+            selectedSaturation = hsv.s;
+        }
+        updateCanvas(colorWheelCanvas, selectedHue, selectedSaturation);
+        modalPreviewCircle.style.background = selectedHex;
+        modalHexDisplay.textContent = selectedHex.toUpperCase();
+        colorPreviewDot.style.background = selectedHex;
+    }
+
+    // ==================== ЛОГИКА ГРАДИЕНТА ====================
+    function getActiveGradientColor() {
+        return activeGradientSlot === 1 ? gradientColor1 : gradientColor2;
+    }
+    function setActiveGradientColor(hex) {
+        if (activeGradientSlot === 1) gradientColor1 = hex;
+        else gradientColor2 = hex;
+        updateGradientPreview();
+    }
+    function updateGradientPreview() {
+        gradientSlot1.style.setProperty('--slot-color', gradientColor1);
+        gradientSlot2.style.setProperty('--slot-color', gradientColor2);
+        const activeColor = getActiveGradientColor();
+        gradientHexDisplay.textContent = activeColor.toUpperCase();
+        gradientPreviewDot.style.background = gradientColor1; // показываем первый цвет
+    }
+
+    function updateGradientCanvasWithActive() {
+        const active = getActiveGradientColor();
+        const rgb = hexToRgb(active);
+        if (rgb) {
+            const hsv = rgbToHsvApprox(rgb.r, rgb.g, rgb.b);
+            gradientHue = hsv.h;
+            gradientSaturation = hsv.s;
+        }
+        updateCanvas(gradientColorWheelCanvas, gradientHue, gradientSaturation);
+    }
+
+    function gradientSelectionFromCoords(coords) {
+        const dx = coords.x - wheelCenterX;
+        const dy = coords.y - wheelCenterY;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        const clampedDist = Math.min(distance, wheelRadius);
+        const angle = Math.atan2(dy, dx);
+        const hue = ((angle * 180 / Math.PI) + 360) % 360;
+        const saturation = clampedDist / wheelRadius;
+        gradientHue = hue;
+        gradientSaturation = saturation;
+        const rgb = hsvToRgb(hue, saturation, 1.0);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        setActiveGradientColor(hex);
+        updateCanvas(gradientColorWheelCanvas, gradientHue, gradientSaturation);
+        gradientHexDisplay.textContent = hex.toUpperCase();
+    }
+
+    // Переключение активного слота градиента
+    function setActiveGradientSlot(slot) {
+        activeGradientSlot = slot;
+        gradientSlot1.classList.toggle('active-slot', slot === 1);
+        gradientSlot2.classList.toggle('active-slot', slot === 2);
+        updateGradientCanvasWithActive();
+        updateGradientPreview();
+    }
+
+    gradientSlot1.addEventListener('click', () => setActiveGradientSlot(1));
+    gradientSlot2.addEventListener('click', () => setActiveGradientSlot(2));
+
+    // ==================== Глобальные обработчики холстов ====================
+    function setupCanvasEvents(canvas, onSelect) {
+        let drag = false;
+        canvas.addEventListener('mousedown', e => { drag = true; onSelect(getCanvasCoords(e, canvas)); e.preventDefault(); });
+        canvas.addEventListener('mousemove', e => { if (!drag) return; onSelect(getCanvasCoords(e, canvas)); e.preventDefault(); });
+        canvas.addEventListener('mouseup', () => { drag = false; });
+        canvas.addEventListener('mouseleave', () => { drag = false; });
+        canvas.addEventListener('touchstart', e => { drag = true; onSelect(getCanvasCoords(e, canvas)); e.preventDefault(); }, {passive: false});
+        canvas.addEventListener('touchmove', e => { if (!drag) return; onSelect(getCanvasCoords(e, canvas)); e.preventDefault(); }, {passive: false});
+        canvas.addEventListener('touchend', () => { drag = false; });
+        canvas.addEventListener('touchcancel', () => { drag = false; });
+    }
+
+    setupCanvasEvents(colorWheelCanvas, updateSingleSelectionFromCoords);
+    setupCanvasEvents(gradientColorWheelCanvas, gradientSelectionFromCoords);
+
+    // ==================== Открытие/закрытие модалок ====================
+    function openSingleModal() {
+        initSingleModal();
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSingleModal() {
+        modalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    btnColor.addEventListener('click', e => { e.preventDefault(); openSingleModal(); });
+    btnCancel.addEventListener('click', e => { e.preventDefault(); closeSingleModal(); });
+    btnConfirm.addEventListener('click', e => {
+        e.preventDefault();
+        colorHexInput.value = selectedHex;
+        commandInput.value = 'color';
+        closeSingleModal();
+        form.submit();
+    });
+    modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeSingleModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalOverlay.classList.contains('active')) closeSingleModal(); });
+
+    // Градиентная модалка
+    function openGradientModal() {
+        setActiveGradientSlot(1);  // всегда начинаем с первого слота
+        updateGradientPreview();
+        gradientModalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeGradientModal() {
+        gradientModalOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    btnGradient.addEventListener('click', e => { e.preventDefault(); openGradientModal(); });
+    btnGradientCancel.addEventListener('click', e => { e.preventDefault(); closeGradientModal(); });
+    btnGradientConfirm.addEventListener('click', e => {
+        e.preventDefault();
+        gradientColor1Input.value = gradientColor1;
+        gradientColor2Input.value = gradientColor2;
+        commandInput.value = 'gradient';
+        closeGradientModal();
+        form.submit();
+    });
+    gradientModalOverlay.addEventListener('click', e => { if (e.target === gradientModalOverlay) closeGradientModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && gradientModalOverlay.classList.contains('active')) closeGradientModal(); });
+
+    // Стандартные кнопки ВКЛ/ВЫКЛ
+    btnOn.addEventListener('click', () => { commandInput.value = 'on'; colorHexInput.value = selectedHex; });
+    btnOff.addEventListener('click', () => { commandInput.value = 'off'; colorHexInput.value = selectedHex; });
+
+    // ==================== Инициализация ====================
+    updateCanvas(colorWheelCanvas, selectedHue, selectedSaturation);
+    updateCanvas(gradientColorWheelCanvas, gradientHue, gradientSaturation);
+    colorPreviewDot.style.background = selectedHex;
+    gradientPreviewDot.style.background = gradientColor1;
+    gradientSlot1.style.setProperty('--slot-color', gradientColor1);
+    gradientSlot2.style.setProperty('--slot-color', gradientColor2);
+    console.log('✨ Готово: команды on/off, цвет, градиент (gradient_color1, gradient_color2)');
+})();
+</script>
+</body>
+</html>
