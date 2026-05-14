@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Сценарии умной лампы</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a14;
+            --card-bg: rgba(22, 22, 40, 0.8);
+            --text-primary: #e8e8f0;
+            --text-secondary: #b0b0c0;
+            --accent: #7c3aed;
+            --btn-radius: 18px;
+            --safe-bottom: env(safe-area-inset-bottom, 16px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            color: var(--text-primary);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .bg-orbs, .stars {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.45;
+            animation: floatOrb var(--duration, 12s) ease-in-out infinite;
+            animation-delay: var(--delay, 0s);
+            will-change: transform;
+        }
+        .bg-orb:nth-child(1) { width: 220px; height: 220px; background: #7c3aed; top: -60px; left: -40px; --duration: 14s; --delay: 0s; }
+        .bg-orb:nth-child(2) { width: 180px; height: 180px; background: #3b82f6; bottom: -50px; right: -30px; --duration: 16s; --delay: -4s; }
+        .bg-orb:nth-child(3) { width: 160px; height: 160px; background: #14b8a6; top: 40%; left: 50%; --duration: 18s; --delay: -8s; }
+        .bg-orb:nth-child(4) { width: 140px; height: 140px; background: #ec4899; bottom: 20%; left: 10%; --duration: 20s; --delay: -12s; }
+
+        @keyframes floatOrb {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            20% { transform: translate(30px, -40px) scale(1.15); }
+            40% { transform: translate(-20px, 25px) scale(0.9); }
+            60% { transform: translate(35px, 30px) scale(1.1); }
+            80% { transform: translate(-25px, -35px) scale(0.85); }
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--twinkle-dur, 3s) ease-in-out infinite;
+            opacity: 0;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.15; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(2.2); }
+        }
+
+        .scenario-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 560px;
+            background: var(--card-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 28px;
+            padding: 28px 24px 32px;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .back-link {
+            color: #a78bfa;
+            text-decoration: none;
+            font-size: 0.9rem;
+            align-self: flex-start;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #c4b5fd; }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .create-form {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .intervals-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .interval-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .interval-row input[type="time"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+            min-width: 90px;
+        }
+
+        .interval-row input[type="color"] {
+            width: 42px;
+            height: 42px;
+            padding: 3px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08);
+            cursor: pointer;
+        }
+
+        .interval-row .remove-interval {
+            background: rgba(239,68,68,0.8);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .interval-row .remove-interval:hover { background: #ef4444; }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            border: none;
+            border-radius: var(--btn-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--accent);
+            box-shadow: 0 8px 22px rgba(124,58,237,0.3);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.96); }
+
+        .btn-add {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+            border: 1px dashed rgba(255,255,255,0.3);
+            color: #c4b5fd;
+            font-weight: 500;
+        }
+
+        .scenarios-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .scenario-card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 18px;
+            padding: 16px 18px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: background 0.2s;
+        }
+        .scenario-card:hover { background: rgba(255,255,255,0.09); }
+
+        .intervals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .interval-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--dot-color, #fff);
+            border: 2px solid rgba(255,255,255,0.7);
+            box-shadow: 0 0 8px var(--dot-color);
+            flex-shrink: 0;
+        }
+
+        .interval-time {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 4px 12px;
+        }
+
+        .scenario-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        .btn-apply {
+            background: #10b981;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+        .btn-delete {
+            background: #ef4444;
+            box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+        }
+        .btn-sm:active { transform: scale(0.94); }
+
+        .empty-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-orbs">
+        <div class="bg-orb"></div><div class="bg-orb"></div><div class="bg-orb"></div><div class="bg-orb"></div>
+    </div>
+    <div class="stars" id="starsContainer"></div>
+
+    <div class="scenario-container">
+        <a href="/" class="back-link">← На главную</a>
+        <h2>Сценарии</h2>
+
+        <div class="create-form">
+            <form id="scenarioForm" method="POST" action="/scenario/create">
+                <div class="intervals-container" id="intervalsContainer">
+                    <div class="interval-row">
+                        <input type="time" name="start_time" required>
+                        <span style="color:var(--text-secondary);">–</span>
+                        <input type="time" name="end_time" required>
+                        <input type="color" name="color" value="#ffffff" required>
+                        <button type="button" class="remove-interval" onclick="removeInterval(this)">✕</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-add" onclick="addInterval()" style="margin-bottom: 10px;">+ Добавить интервал</button>
+                <button type="submit" class="btn">Создать сценарий</button>
+            </form>
+        </div>
+
+        <div class="scenarios-list">
+            {% if scenarios %}
+                {% for scenario in scenarios %}
+                <div class="scenario-card">
+                    <div class="intervals-list">
+                        {% for interval in scenario.intervals %}
+                        <div class="interval-item">
+                            <div class="color-dot" style="--dot-color: {{ interval.color }};"></div>
+                            <span class="interval-time">{{ interval.start }} – {{ interval.end }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="scenario-actions">
+                        <form method="POST" action="/scenario/apply/{{ loop.index0 }}" style="display:inline;">
+                            <button type="submit" class="btn-sm btn-apply">Применить</button>
+                        </form>
+                        <form method="POST" action="/scenario/delete/{{ loop.index0 }}" style="display:inline;">
+                            <button type="submit" class="btn-sm btn-delete">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-message">Пока нет ни одного сценария.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        (function createStars() {
+            const container = document.getElementById('starsContainer');
+            let html = '';
+            for (let i = 0; i < 55; i++) {
+                const x = Math.random() * 100, y = Math.random() * 100;
+                const size = Math.random() * 2.2 + 0.8;
+                const dur = Math.random() * 3 + 2;
+                const delay = Math.random() * 5;
+                html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;--twinkle-dur:${dur}s;--twinkle-delay:${delay}s;"></div>`;
+            }
+            container.innerHTML = html;
+        })();
+
+        function addInterval() {
+            const container = document.getElementById('intervalsContainer');
+            const row = document.createElement('div');
+            row.className = 'interval-row';
+            row.innerHTML = `
+                <input type="time" name="start_time" required>
+                <span style="color:var(--text-secondary);">–</span>
+                <input type="time" name="end_time" required>
+                <input type="color" name="color" value="#ffffff" required>
+                <button type="button" class="remove-interval" onclick="removeInterval(this)">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeInterval(btn) {
+            const container = document.getElementById('intervalsContainer');
+            const rows = container.querySelectorAll('.interval-row');
+            if (rows.length > 1) {
+                btn.closest('.interval-row').remove();
+            }
+        }
+    </script>
+</body>
+</html>
