@@ -348,6 +348,16 @@
             width: 100%;
             height: 100%;
         }
+
+        /* ИСПРАВЛЕНИЕ: добавлена строка превью цвета */
+        .selected-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         .selected-preview-circle {
             width: 44px;
             height: 44px;
@@ -443,6 +453,7 @@
             .selected-preview-circle { width: 36px; height: 36px; }
             .selected-hex { font-size: 0.85rem; padding: 6px 10px; }
             .btn-modal { padding: 12px 12px; font-size: 0.85rem; min-height: 42px; border-radius: 12px; }
+            .selected-preview-row { gap: 8px; }
         }
     </style>
 </head>
